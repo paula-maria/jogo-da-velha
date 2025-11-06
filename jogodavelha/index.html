@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Jogo da Velha — Paula</title>
+  <style>
+    :root{
+      --bg: #fff7fa;
+      --card: #ffffffcc;
+      --accent: #f59ad1;
+      --accent-2: #c9b6ff;
+      --text: #3d3d3d;
+      --muted: #8b8b8b;
+      --win: #a3d8a4;
+      --lose: #fca5a5;
+      --confetti1: #fcd5ce;
+      --confetti2: #c5deff;
+      --confetti3: #fde2e4;
+      --confetti4: #caffbf;
+    }
+    *{box-sizing:border-box; font-family:'Poppins', sans-serif;}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,var(--bg), #f3e5f5 80%);
+      color:var(--text);
+      padding:20px;
+    }
+
+    .app {
+      width:100%;
+      max-width:900px;
+      background:var(--card);
+      border-radius:20px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 10px 30px rgba(255,182,193,0.25);
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: 1fr 320px;
+    }
+
+    header{
+      grid-column:1 / -1;
+      padding:20px 25px;
+      border-bottom:1px solid rgba(0,0,0,0.05);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      background:linear-gradient(90deg,#fde2e4,#e0bbff);
+    }
+    header h1{
+      margin:0;
+      font-size:20px;
+      color:#6a4c93;
+    }
+    header .sub{color:var(--muted);font-size:13px}
+
+    .board-wrap{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      background:linear-gradient(180deg,#ffffff,#fff0f6);
+    }
+
+    .board {
+      width:100%;
+      max-width:520px;
+      aspect-ratio:1/1;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+
+    .cell {
+      background: linear-gradient(180deg,#fff,#faf6ff);
+      border-radius:16px;
+      display:grid;
+      place-items:center;
+      font-size:48px;
+      font-weight:800;
+      color:var(--text);
+      cursor:pointer;
+      user-select:none;
+      transition:transform .12s ease, box-shadow .12s ease, background .15s;
+      border: 2px solid rgba(0,0,0,0.05);
+      box-shadow:0 3px 6px rgba(0,0,0,0.08);
+    }
+    .cell:active{ transform: scale(.97); }
+    .cell.disabled{ cursor:not-allowed; opacity:.85; }
+    .cell.x{ color: #6b5b95; }
+    .cell.o{ color: #d291bc; }
+
+    .status {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .turn {
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:white;
+      padding:8px 12px;
+      border-radius:10px;
+      font-weight:700;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      box-shadow:0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+    .btn {
+      background:transparent;
+      border:1px solid rgba(0,0,0,0.08);
+      padding:8px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+      color:var(--text);
+      transition:all .2s;
+    }
+    .btn:hover {
+      background:#f9f0ff;
+      transform: scale(1.03);
+    }
+    .btn.primary {
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:white;
+      border:none;
+      box-shadow:0 6px 16px rgba(200,150,255,0.3);
+    }
+
+    aside {
+      padding:22px;
+      border-left:1px solid rgba(0,0,0,0.05);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      background:linear-gradient(180deg,#fff,#fef6ff);
+    }
+
+    .score {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px;
+      border-radius:12px;
+      background:linear-gradient(90deg, rgba(255,203,219,0.3), rgba(202,255,191,0.25));
+      font-weight:700;
+      box-shadow:inset 0 0 10px rgba(255,182,193,0.15);
+    }
+
+    .score div small{ display:block; font-weight:400; color:var(--muted); font-size:12px; }
+
+    .mode label {
+      font-weight:600;
+      color:#6a4c93;
+    }
+
+    .info { color:var(--muted); font-size:13px; }
+
+    .win { outline: 5px solid rgba(163,216,164,0.6); box-shadow:0 6px 18px rgba(163,216,164,0.4); }
+    .draw { outline: 5px solid rgba(255,204,229,0.6); }
+
+    footer{
+      grid-column:1/-1;
+      padding:12px 22px;
+      font-size:13px;
+      color:var(--muted);
+      text-align:center;
+      background:#fff9fb;
+    }
+
+    /* Confete */
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      opacity: 0.8;
+      top: -10px;
+      animation: fall 3s linear forwards;
+      z-index: 9999;
+    }
+    @keyframes fall {
+      to {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* Responsivo */
+    @media (max-width:920px){
+      .app{ grid-template-columns: 1fr; }
+      aside{ border-left: none; border-top:1px solid rgba(0,0,0,0.05) }
+      .board { max-width:100%; height:auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Jogo da Velha">
+    <header>
+      <div>
+        <h1>Jogo da Velha</h1>
+        <div class="sub">Jogue 2 jogadores ou contra a CPU (fácil)</div>
+      </div>
+
+      <div class="status">
+        <div class="turn" id="turnDisplay">Vez: <span id="turnPlayer">X</span></div>
+        <div class="controls">
+          <button class="btn" id="newGameBtn">Nova partida</button>
+          <button class="btn primary" id="resetScoreBtn">Resetar placar</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+      <div class="info panel">Dica: clique em uma célula ou use as teclas 1–9 para jogar.</div>
+    </div>
+
+    <aside>
+      <div class="panel">
+        <strong>Modo de jogo</strong>
+        <div class="mode">
+          <label><input type="radio" name="mode" value="local" checked> 2 jogadores</label>
+          <label><input type="radio" name="mode" value="cpu"> vs CPU</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="score">
+          <div><div>X</div><small id="scoreX">0 vitórias</small></div>
+          <div><div style="font-size:12px;color:var(--muted)">Empates</div><div id="scoreDraw">0</div></div>
+          <div><div>O</div><small id="scoreO">0 vitórias</small></div>
+        </div>
+      </div>
+
+      <div class="panel"><div class="info"><strong>Status:</strong> <span id="gameMsg">Partida em andamento</span></div></div>
+      <div style="margin-top:auto; font-size:12px; color:var(--muted)">Desenvolvido em JavaScript • Placar salvo localmente</div>
+    </aside>
+
+    <footer>© <span id="year"></span> Paula — Jogo da Velha</footer>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const turnDisplay = document.getElementById('turnPlayer');
+    const newGameBtn = document.getElementById('newGameBtn');
+    const resetScoreBtn = document.getElementById('resetScoreBtn');
+    const scoreXEl = document.getElementById('scoreX');
+    const scoreOEl = document.getElementById('scoreO');
+    const scoreDrawEl = document.getElementById('scoreDraw');
+    const gameMsg = document.getElementById('gameMsg');
+    const yearEl = document.getElementById('year');
+    yearEl.textContent = new Date().getFullYear();
+
+    const WIN_LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    let cells = [];
+    let board = Array(9).fill(null);
+    let currentPlayer = 'X';
+    let running = true;
+    let mode = 'local';
+    const STORAGE_KEY = 'ttt_scores_paula';
+    let scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"X":0,"O":0,"D":0}');
+    updateScoreUI();
+
+    function createBoard() {
+      boardEl.innerHTML = '';
+      cells = [];
+      for (let i=0;i<9;i++){
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        btn.dataset.index = i;
+        btn.addEventListener('click', () => makeMove(i));
+        cells.push(btn);
+        boardEl.appendChild(btn);
+      }
+    }
+
+    function startNewGame() {
+      board.fill(null);
+      currentPlayer = 'X';
+      running = true;
+      updateTurnUI();
+      gameMsg.textContent = 'Partida em andamento';
+      cells.forEach(c => { c.textContent=''; c.className='cell'; });
+      boardEl.classList.remove('win','draw');
+    }
+
+    function updateTurnUI(){ turnDisplay.textContent = currentPlayer; }
+
+    function updateScoreUI(){
+      scoreXEl.textContent = `${scores.X} vitórias`;
+      scoreOEl.textContent = `${scores.O} vitórias`;
+      scoreDrawEl.textContent = scores.D;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+    }
+
+    function makeMove(idx){
+      if (!running || board[idx]) return;
+      board[idx] = currentPlayer;
+      const el = cells[idx];
+      el.textContent = currentPlayer;
+      el.classList.add(currentPlayer.toLowerCase());
+      const winnerInfo = checkWinner();
+      if (winnerInfo.winner) return endGame(winnerInfo);
+      if (board.every(Boolean)) return drawGame();
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updateTurnUI();
+      if (mode === 'cpu' && currentPlayer === 'O') setTimeout(cpuPlay, 400);
+    }
+
+    function checkWinner(){
+      for (const line of WIN_LINES){
+        const [a,b,c]=line;
+        if(board[a]&&board[a]===board[b]&&board[a]===board[c])
+          return {winner:board[a], line};
+      }
+      return {winner:null};
+    }
+
+    function endGame({winner,line}){
+      running=false;
+      gameMsg.textContent=`Jogador ${winner} venceu!`;
+      line.forEach(i=>cells[i].classList.add('win'));
+      scores[winner]++;
+      updateScoreUI();
+      launchConfetti();
+    }
+
+    function drawGame(){
+      running=false;
+      gameMsg.textContent="Empate!";
+      scores.D++;
+      updateScoreUI();
+      cells.forEach(c=>c.classList.add('draw'));
+    }
+
+    function cpuPlay(){
+      const empty=board.map((v,i)=>v?null:i).filter(i=>i!==null);
+      if(!empty.length)return;
+      const move=empty[Math.floor(Math.random()*empty.length)];
+      makeMove(move);
+    }
+
+    function launchConfetti(){
+      for(let i=0;i<40;i++){
+        const c=document.createElement('div');
+        c.classList.add('confetti');
+        c.style.left=Math.random()*100+'vw';
+        c.style.backgroundColor=[
+          'var(--confetti1)','var(--confetti2)','var(--confetti3)','var(--confetti4)'
+        ][Math.floor(Math.random()*4)];
+        c.style.animationDuration=(2+Math.random()*2)+'s';
+        document.body.appendChild(c);
+        setTimeout(()=>c.remove(),3000);
+      }
+    }
+
+    document.querySelectorAll('input[name="mode"]').forEach(r=>{
+      r.addEventListener('change',e=>{
+        mode=e.target.value;
+        startNewGame();
+      });
+    });
+
+    newGameBtn.addEventListener('click',startNewGame);
+    resetScoreBtn.addEventListener('click',()=>{
+      if(confirm('Zerar o placar?')){
+        scores={X:0,O:0,D:0};
+        updateScoreUI();
+        startNewGame();
+      }
+    });
+
+    createBoard();
+    startNewGame();
+  </script>
+</body>
+</html>
